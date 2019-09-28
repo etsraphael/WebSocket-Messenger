@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="http://bit.ly/cdn-bootstrap-theme">
 <script src="http://bit.ly/cdn-bootstrap-jq"></script>
 <script>
-    var ws = new WebSocket("ws://localhost:8181");
+    var ws = new WebSocket("ws://localhost:8181?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImV0c19yYXBoYWVsQG91dGxvb2suZnIiLCJpZCI6IjVkNjA0M2Q3MDM1YTVjMjMzMmU1YTE1MiIsImlhdCI6MTU2OTYzNDgwNiwic3ViIjoiZXRzX3JhcGhhZWxAb3V0bG9vay5mciJ9.0PaNK2jlta6i9D8b3CYu5oBLUY7L2zdnKH39F9gKOiU");
     ws.onopen = function(e) {
       console.log('Connection to server opened');
     }

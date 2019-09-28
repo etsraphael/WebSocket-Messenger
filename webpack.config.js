@@ -7,9 +7,13 @@ module.exports = {
     entry: './server.ts',
     devtool: 'inline-source-map',
     devServer: {
-        contentBase: './dist'
+        contentBase: [
+            path.resolve(__dirname, './dist'),
+        ]
+
     },
     module: {
+        exprContextCritical: false,
         rules: [
             {
                 test: /\.ts$/,
@@ -30,7 +34,7 @@ module.exports = {
     ],
     resolve: {
         modules: ['node_modules'],
-        extensions: ['.tsx', '.ts', '.js']
+        extensions: ['.js', '.ts']
     },
     output: {
         filename: 'bundle.js',

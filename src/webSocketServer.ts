@@ -1,73 +1,115 @@
-import * as ws from 'ws';
-import { IncomingMessage } from 'http';
-import * as jwt from 'jsonwebtoken';
-import { Observable, Subscriber } from '../node_modules/rxjs/index.d';
-import { map, tap } from '../node_modules/rxjs/operators/index.d';
-
+import * as ws from "ws";
+import * as os from "os";
+import { IncomingMessage } from "http";
+import * as jwt from "jsonwebtoken";
+import { Observable, Subscriber } from "../node_modules/rxjs/index.d";
+import { map, tap, take } from "rxjs/operators";
+import { IPayloadToken } from "./model/IPayloadToken";
+import * as R from "ramda";
+import { IDataUserConnected } from "./model/IDataUserConnected";
+import { Executor } from "./util/Executor";
 
 export class WebSocketServer {
-    private clientsConnected: MapArraySocket = {};
+  private clientsConnected: DataUserConnectedMapArray = {};
 
-    public createWebSocketServer(port: number): void {
-        const wsServer = new ws.Server({ port: port });
-        wsServer.on('connection', this.onConnection.bind(this));
+  public createWebSocketServer(port: number): void {
+    const wsServer = new ws.Server({ port: port });
+    wsServer.on("connection", this.onConnection.bind(this));
+  }
+
+  private onConnection(socket: ws, incomingMessage: IncomingMessage) {
+    const token = this.getTokenFromUrl(incomingMessage.url);
+
+    this.decodedToken$(token)
+      .pipe(
+        map(dataDecoded =>
+          this.concatSocketInClientArray(
+            socket,
+            dataDecoded,
+            this.clientsConnected
+          )
+        ),
+        tap(dataUserConnectedArray =>
+          this.getExecSetDataUserConnected(
+            dataUserConnectedArray[0].payloadToken.id,
+            this.clientsConnected,
+            dataUserConnectedArray
+          ).execute()
+        ),
+        take(1)
+      )
+      .subscribe(
+        dataUserConnectedArray => {
+          console.log(
+            `new connection with id ${dataUserConnectedArray[0].payloadToken.id}`
+          );
+        },
+        error => {
+          console.log(`cannot register the user : ${error.message}`);
+        }
+      );
+  }
+
+  /**
+   * get token from url
+   * @param url the url with params query
+   */
+  private getTokenFromUrl(url: string): string | null {
+    if (url[0] === "/") {
+      const urlFormated = `ws://${os.hostname()}${url}`;
+      const urlParsed = new URL(urlFormated);
+      return urlParsed.searchParams.get("token");
     }
 
-    private onConnection(socket: ws, incomingMessage: IncomingMessage) {
-        const token = this.getTokenFromUrl(socket.url);
-        
+    const urlParsed = new URL(url);
+    return urlParsed.searchParams.get("token");
+  }
 
-        this.decodedToken(token)
-            .pipe(
-                tap((dataDecoded) => this.addTokenInClientArray(socket, dataDecoded.id, this.clientsConnected)),
-            )
-            .subscribe(
-                (dataDecoded) => {
-                    // TODO afficher le nom, le prenom et le id
-                    console.log('new user connected');
-                },
-                (error) => {
-                    console.log(`cannot register the user ${error.message}`);
-                }
-            )
-    }
+  /**
+   * decoded token
+   * @param token The token
+   */
+  private decodedToken$(token: string): Observable<IPayloadToken> {
+    return new Observable((subscriber: Subscriber<IPayloadToken>) => {
+      jwt.verify(token, "averysecretkey", (err, decoded) => {
+        if (err) return subscriber.error(err);
+        subscriber.next(decoded as IPayloadToken);
+        subscriber.complete();
+      });
+    });
+  }
 
-    /**
-     * get token from url
-     * @param url the url with params query
-     */
-    private getTokenFromUrl(url: string): string | null {
-        const urlParsed = new URL(url);
-        return urlParsed.searchParams.get('token');
-    }
+  private concatSocketInClientArray(
+    websocket: ws,
+    payloadToken: IPayloadToken,
+    dataUserConnectedArray: DataUserConnectedMapArray
+  ): IDataUserConnected[] {
+    const dataUserConnected: IDataUserConnected = {
+      websocket,
+      connectedAt: Date.now(),
+      payloadToken
+    };
 
-    /**
-     * decoded token
-     * @param token The token
-     */
-    private decodedToken(token: string): Observable<any> {
-        return new Observable((subscriber: Subscriber<any>) => {
-            jwt.verify(token, 'mySecret', (err, decoded) => {
-                if (err) return subscriber.error(err);
-                subscriber.next(token);
-                subscriber.complete();
-            });
-        });
-    }
+    const getDataUserConnected = R.ifElse(
+      (dataUserConnectedArray: DataUserConnectedMapArray) =>
+        typeof dataUserConnectedArray[payloadToken.id] === "object",
+      (dataUserConnectedArray: DataUserConnectedMapArray) =>
+        dataUserConnectedArray[payloadToken.id].concat([dataUserConnected]),
+      (dataUserConnectedArray: DataUserConnectedMapArray) => [dataUserConnected]
+    );
 
-    /**
-     * Add token to array
-     * @param socket The socket
-     * @param id The user id
-     * @param clientMapArray The socket client map array
-     */
-    private addTokenInClientArray(socket: ws, id: string, clientMapArray: MapArraySocket): void {
-        clientMapArray[id] = socket;
-    }
+    return getDataUserConnected(dataUserConnectedArray) as IDataUserConnected[];
+  }
 
-    // parse url et recuperer le token
-    // decrypter le token
-    // si decrypter ajouter dans le tableau du client sinon fermer la connection
+  private getExecSetDataUserConnected(
+    idUser: string,
+    clientConnected: DataUserConnectedMapArray,
+    dataUserConnectedArray: IDataUserConnected[]
+  ): Executor {
+    return new Executor(() => {
+      clientConnected[idUser] = dataUserConnectedArray;
+    });
+  }
 }
 
-export type MapArraySocket = { [id: string]: ws };
+export type DataUserConnectedMapArray = { [id: string]: IDataUserConnected[] };
