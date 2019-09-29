@@ -120,7 +120,8 @@ export class WebSocketServer {
       const message: Message = JSON.parse(data);
 
       switch (message.type) {
-        case "test":
+        case "text":
+          console.log(message);
           this.handleMessageText(
             message as MessageText,
             this.clientsConnected
@@ -137,34 +138,37 @@ export class WebSocketServer {
     return from(message.participants).pipe(
       tap(participant => {
         const dataUserConnectedArray = clientConnectedArray[participant];
+        console.log(clientConnectedArray);
+        console.log("ok3");
 
-        R.cond([
-          [
-            (dataUserArray: IDataUserConnected[]) =>
-              R.isArrayLike(dataUserArray),
-            (dataUserArray: IDataUserConnected[]) => {
-              dataUserArray.map(dataUserConnected => {
-                if (dataUserConnected.websocket.readyState === WebSocket.OPEN) {
-                  dataUserConnected.websocket.send(JSON.stringify(message));
-                  console.log(
-                    "Message send to user id : " +
-                      dataUserConnected.payloadToken.id
-                  );
-                  return;
-                }
-
-                //TODO effacer le socket de l'array
-                console.log(
-                  "Cannot send message to user id " +
-                    dataUserConnected.payloadToken.id
-                );
-              });
+        if (
+          typeof dataUserConnectedArray === "object" &&
+          typeof dataUserConnectedArray.length === "number"
+        ) {
+          console.log("ok1");
+          dataUserConnectedArray.map(dataUserConnected => {
+            console.log("ok2");
+            if (dataUserConnected.websocket.readyState === WebSocket.OPEN) {
+              dataUserConnected.websocket.send(JSON.stringify(message));
+              console.log(
+                "Message send to user id : " + dataUserConnected.payloadToken.id
+              );
+              return;
             }
-          ]
-        ])(dataUserConnectedArray);
+
+            //TODO effacer le socket de l'array
+            console.log(
+              "Cannot send message to user id " +
+                dataUserConnected.payloadToken.id
+            );
+
+            return dataUserConnected;
+          });
+        } else {
+          console.log("ok4");
+        }
       })
     );
   }
 }
-
 export type DataUserConnectedMapArray = { [id: string]: IDataUserConnected[] };
