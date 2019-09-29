@@ -11,4 +11,4 @@ wsServer.on("connection", ws => {
 */
 
 const webSocketServer = new WebSocketServer();
-webSocketServer.createWebSocketServer(8181);
+webSocketServer.startWebSocketServer(8181);

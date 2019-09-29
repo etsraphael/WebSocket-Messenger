@@ -2,17 +2,19 @@ import * as ws from "ws";
 import * as os from "os";
 import { IncomingMessage } from "http";
 import * as jwt from "jsonwebtoken";
-import { Observable, Subscriber } from "../node_modules/rxjs/index.d";
+import { Observable, Subscriber, from } from "../node_modules/rxjs/index.d";
 import { map, tap, take } from "rxjs/operators";
 import { IPayloadToken } from "./model/IPayloadToken";
 import * as R from "ramda";
 import { IDataUserConnected } from "./model/IDataUserConnected";
 import { Executor } from "./util/Executor";
+import { Message, MessageText } from "./model/Message";
+import WebSocket = require("ws");
 
 export class WebSocketServer {
   private clientsConnected: DataUserConnectedMapArray = {};
 
-  public createWebSocketServer(port: number): void {
+  public startWebSocketServer(port: number): void {
     const wsServer = new ws.Server({ port: port });
     wsServer.on("connection", this.onConnection.bind(this));
   }
@@ -36,6 +38,7 @@ export class WebSocketServer {
             dataUserConnectedArray
           ).execute()
         ),
+        tap(_ => this.handleOnMessage(socket)),
         take(1)
       )
       .subscribe(
@@ -109,6 +112,58 @@ export class WebSocketServer {
     return new Executor(() => {
       clientConnected[idUser] = dataUserConnectedArray;
     });
+  }
+
+  private handleOnMessage(socket: ws) {
+    console.log("handle on message for new user");
+    socket.on("message", (data: string) => {
+      const message: Message = JSON.parse(data);
+
+      switch (message.type) {
+        case "test":
+          this.handleMessageText(
+            message as MessageText,
+            this.clientsConnected
+          ).subscribe();
+          break;
+      }
+    });
+  }
+
+  private handleMessageText(
+    message: MessageText,
+    clientConnectedArray: DataUserConnectedMapArray
+  ): Observable<string> {
+    return from(message.participants).pipe(
+      tap(participant => {
+        const dataUserConnectedArray = clientConnectedArray[participant];
+
+        R.cond([
+          [
+            (dataUserArray: IDataUserConnected[]) =>
+              R.isArrayLike(dataUserArray),
+            (dataUserArray: IDataUserConnected[]) => {
+              dataUserArray.map(dataUserConnected => {
+                if (dataUserConnected.websocket.readyState === WebSocket.OPEN) {
+                  dataUserConnected.websocket.send(JSON.stringify(message));
+                  console.log(
+                    "Message send to user id : " +
+                      dataUserConnected.payloadToken.id
+                  );
+                  return;
+                }
+
+                //TODO effacer le socket de l'array
+                console.log(
+                  "Cannot send message to user id " +
+                    dataUserConnected.payloadToken.id
+                );
+              });
+            }
+          ]
+        ])(dataUserConnectedArray);
+      })
+    );
   }
 }
 
