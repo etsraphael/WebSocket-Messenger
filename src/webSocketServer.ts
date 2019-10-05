@@ -38,7 +38,7 @@ export class WebSocketServer {
           ),
           tap(dataUserConnectedArray =>
             this.getExecSetDataUserConnected(
-              dataUserConnectedArray[0].payloadToken.id,
+              dataUserConnectedArray[0].payloadToken.profile,
               this.clientsConnected,
               dataUserConnectedArray
             ).execute()
@@ -50,7 +50,7 @@ export class WebSocketServer {
         .subscribe(
           dataUserConnectedArray => {
             console.log(
-              `new connection with id ${dataUserConnectedArray[0].payloadToken.id}`
+              `new connection with profile id ${dataUserConnectedArray[0].payloadToken.profile}`
             );
           },
           error => {
@@ -93,7 +93,7 @@ export class WebSocketServer {
   ): IDataUserConnected[] {
     const dateNow = Date.now();
     (websocket as any).connectedAt = dateNow;
-    (websocket as any).idUser = payloadToken.id;
+    (websocket as any).idProfile = payloadToken.profile;
 
     const dataUserConnected: IDataUserConnected = {
       websocket,
@@ -103,9 +103,11 @@ export class WebSocketServer {
 
     const getDataUserConnected = R.ifElse(
       (dataUserConnectedArray: DataUserConnectedMapArray) =>
-        typeof dataUserConnectedArray[payloadToken.id] === "object",
+        typeof dataUserConnectedArray[payloadToken.profile] === "object",
       (dataUserConnectedArray: DataUserConnectedMapArray) =>
-        dataUserConnectedArray[payloadToken.id].concat([dataUserConnected]),
+        dataUserConnectedArray[payloadToken.profile].concat([
+          dataUserConnected
+        ]),
       (dataUserConnectedArray: DataUserConnectedMapArray) => [dataUserConnected]
     );
 
@@ -113,12 +115,12 @@ export class WebSocketServer {
   }
 
   private getExecSetDataUserConnected(
-    idUser: string,
+    idProfile: string,
     clientConnected: DataUserConnectedMapArray,
     dataUserConnectedArray: IDataUserConnected[]
   ): Executor {
     return new Executor(() => {
-      clientConnected[idUser] = dataUserConnectedArray;
+      clientConnected[idProfile] = dataUserConnectedArray;
     });
   }
 
@@ -149,14 +151,14 @@ export class WebSocketServer {
 
   private handleOnDisconnected(socket: ws) {
     socket.on("close", (code, reason) => {
-      const idUser = (socket as any).idUser;
+      const idProfile = (socket as any).idProfile;
       const connectedAt = (socket as any).connectedAt;
-      const dataUserConnectedArray = this.clientsConnected[idUser];
+      const dataUserConnectedArray = this.clientsConnected[idProfile];
 
       if (Array.isArray(dataUserConnectedArray)) {
         this.findIndexByIdUserAndConnectedAt(
           dataUserConnectedArray,
-          idUser,
+          idProfile,
           connectedAt
         )
           .map(indexForRemove => {
@@ -170,7 +172,7 @@ export class WebSocketServer {
           .map(_ =>
             this.deletedDataUserConnectedArrayEmpty(
               this.clientsConnected,
-              idUser
+              idProfile
             ).execute()
           );
       }
@@ -179,12 +181,12 @@ export class WebSocketServer {
 
   private findIndexByIdUserAndConnectedAt(
     dataUserConnectedArray: IDataUserConnected[],
-    idUser: string,
+    idProfile: string,
     connectedAt: number
   ): Optional<number> {
     const indexForRemove = dataUserConnectedArray.findIndex(
       dataUserConnected =>
-        (dataUserConnected.websocket as any).idUser === idUser &&
+        (dataUserConnected.websocket as any).idProfile === idProfile &&
         (dataUserConnected.websocket as any).connectedAt === connectedAt
     );
 
@@ -193,16 +195,16 @@ export class WebSocketServer {
 
   private deletedDataUserConnectedArrayEmpty(
     clientConnected: DataUserConnectedMapArray,
-    idUser: string
+    idProfile: string
   ): Executor {
     return new Executor(() => {
-      const dataArrayUserDisconnected = clientConnected[idUser];
+      const dataArrayUserDisconnected = clientConnected[idProfile];
       if (
         Array.isArray(dataArrayUserDisconnected) &&
         dataArrayUserDisconnected.length === 0
       ) {
-        delete this.clientsConnected[idUser];
-        console.log(`deleted data array for user id ${idUser}`);
+        delete this.clientsConnected[idProfile];
+        console.log(`deleted data array for user id ${idProfile}`);
       }
     });
   }
@@ -214,9 +216,11 @@ export class WebSocketServer {
     return new Executor(() => {
       const dataUserDeleted = dataUserConnectedArray.splice(index, 1);
       console.log(
-        `deleted data for user id ${dataUserDeleted[0].payloadToken.id}`
+        `deleted data for user profile id ${dataUserDeleted[0].payloadToken.profile}`
       );
     });
   }
 }
-export type DataUserConnectedMapArray = { [id: string]: IDataUserConnected[] };
+export type DataUserConnectedMapArray = {
+  [idProfile: string]: IDataUserConnected[];
+};

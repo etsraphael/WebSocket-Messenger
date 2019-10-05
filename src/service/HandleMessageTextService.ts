@@ -45,13 +45,14 @@ export class HandleMessageTextService implements IHandleMessageService {
         if (dataUserConnected.websocket.readyState === WebSocket.OPEN) {
           dataUserConnected.websocket.send(JSON.stringify(message));
           console.log(
-            "Message send to user id : " + dataUserConnected.payloadToken.id
+            "Message send to user profile id : " +
+              dataUserConnected.payloadToken.profile
           );
           return;
         }
 
         console.log(
-          `Message cannot be send to user with id ${dataUserConnected.payloadToken.id}, the socket is close`
+          `Message cannot be send to user with profile id ${dataUserConnected.payloadToken.profile}, the socket is close`
         );
 
         return;

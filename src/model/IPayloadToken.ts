@@ -3,4 +3,5 @@ export interface IPayloadToken {
   id: string;
   iat: number;
   sub: string;
+  profile: string;
 }
