@@ -12,6 +12,7 @@ import { Message } from "./model/Message";
 import { HandleMessageTextService } from "./service/HandleMessageTextService";
 import { IHandleMessageService } from "./service/IHandleMessageService";
 import { Optional } from "typescript-optional";
+import * as http from "http";
 
 export class WebSocketServer {
   private clientsConnected: DataUserConnectedMapArray = {};
@@ -20,8 +21,12 @@ export class WebSocketServer {
     private handleMessageTextService: IHandleMessageService = new HandleMessageTextService()
   ) {}
 
-  public startWebSocketServer(port: number): void {
-    const wsServer = new ws.Server({ port: port });
+  public startWebSocketServer(port: number | string): void {
+    const portConverted = typeof port === "string" ? parseInt(port) : port;
+    const server = http.createServer();
+    server.listen(portConverted);
+    const wsServer = new ws.Server({ server });
+
     wsServer.on("connection", this.onConnection.bind(this));
   }
 

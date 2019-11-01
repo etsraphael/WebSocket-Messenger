@@ -5,7 +5,8 @@
   "main": "./dist/bundle.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "./node_modules/.bin/eslint --fix  src/**/*.ts && npx webpack && node dist/bundle.js"
+    "start": "./node_modules/.bin/eslint --fix  src/**/*.ts && npx webpack && node dist/bundle.js",
+    "prod": "npx webpack && node dist/bundle.js"
   },
   "author": "",
   "license": "ISC",

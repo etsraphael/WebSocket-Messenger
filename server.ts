@@ -11,4 +11,4 @@ wsServer.on("connection", ws => {
 */
 
 const webSocketServer = new WebSocketServer();
-webSocketServer.startWebSocketServer(8181);
+webSocketServer.startWebSocketServer(process.env.PORT || 8181);
