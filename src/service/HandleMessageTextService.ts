@@ -6,7 +6,6 @@ import { IDataUserConnected } from "../model/IDataUserConnected";
 import WebSocket = require("ws");
 import { mergeMap } from "rxjs/operators";
 import { Optional } from "typescript-optional";
-
 export class HandleMessageTextService implements IHandleMessageService {
   handle(
     message: Message,
