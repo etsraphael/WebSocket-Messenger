@@ -224,7 +224,9 @@ export class WebSocketServer {
       );
     });
   }
+  
 }
+
 export type DataUserConnectedMapArray = {
   [idProfile: string]: IDataUserConnected[];
-};
+}
