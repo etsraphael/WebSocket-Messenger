@@ -26,7 +26,6 @@ export class WebSocketServer {
     const server = http.createServer();
     server.listen(portConverted);
     const wsServer = new ws.Server({ server });
-
     wsServer.on("connection", this.onConnection.bind(this));
   }
 
